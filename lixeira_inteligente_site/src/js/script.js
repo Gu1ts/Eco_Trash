@@ -6,7 +6,7 @@
 ========================================== */
 
 const FIREBASE_URL =
-  "https://guilhermebanco-default-rtdb.com/leituras.json";
+  "https://guilhermebanco-default-rtdb.firebaseio.com/leituras.json";
 
 const INTERVALO_CONSULTA = 20;
 
