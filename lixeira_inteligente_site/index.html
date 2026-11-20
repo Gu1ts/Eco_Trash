@@ -3,24 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Status da EcoTrash</title>
+  <title>EcoTrash | Lixeira Inteligente</title>
   <link rel="stylesheet" href="src/css/style.css">
 </head>
 <body>
-  <main class="painel">
-    <h1>EcoTrash</h1>
-    <p class="descricao">Acompanhamento do nível de ocupação</p>
-    <div class="percentual" id="ocupacao">--%</div>
-    <div class="legenda">Ocupação atual</div>
-    <div class="status" id="status">AGUARDANDO</div>
-    <section class="medicao">
-      <div class="medicao-titulo">Última vez medida</div>
-      <div class="medicao-horario" id="ultima-medicao">Aguardando dados...</div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">♻</span><span>EcoTrash</span></div>
+    <span class="top-label">MONITORAMENTO INTELIGENTE</span>
+  </header>
+
+  <main class="container">
+    <section class="intro">
+      <p class="eyebrow">SUSTENTABILIDADE • TECNOLOGIA • INOVAÇÃO</p>
+      <h1>Monitoramento da <span>lixeira inteligente</span></h1>
+      <p class="subtitle">Consulte em tempo real o último registro enviado pelo dispositivo EcoTrash.</p>
     </section>
-    <div class="conexao">
-      <span class="ponto" id="ponto-conexao"></span>
-      <span id="texto-conexao">Conectando ao banco de dados...</span>
-    </div>
+
+    <section class="status-card">
+      <div class="card-heading">
+        <div><p class="eyebrow">ESTADO DO SISTEMA</p><h2>Consulta ao banco de dados</h2></div>
+        <span id="connectionBadge" class="badge neutral">Aguardando consulta</span>
+      </div>
+      <div class="main-status">
+        <div class="occupancy">
+          <span id="occupancyValue">--</span><small>%</small>
+          <p>Ocupação atual</p>
+        </div>
+        <div class="status-details">
+          <div class="status-indicator" id="statusIndicator"></div>
+          <p class="label">STATUS DA LIXEIRA</p>
+          <h3 id="statusValue">Não consultado</h3>
+          <p id="statusDescription">Clique em consultar para buscar o último registro.</p>
+        </div>
+      </div>
+      <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+      <div class="metrics">
+        <div class="metric"><span>Distância do sensor</span><strong id="distanceValue">-- cm</strong></div>
+        <div class="metric"><span>Última leitura registrada</span><strong id="readingTime">--</strong></div>
+        <div class="metric"><span>Dispositivo</span><strong id="deviceValue">--</strong></div>
+      </div>
+      <div class="query-area">
+        <button id="queryButton" type="button">↻ &nbsp; Consultar banco</button>
+        <p id="countdownText">A consulta não é automática. Clique no botão para atualizar os dados.</p>
+      </div>
+    </section>
+    <section class="footnote"><span class="leaf">♻</span><p>EcoTrash — tecnologia a favor de um futuro mais sustentável.</p></section>
   </main>
   <script src="src/js/script.js"></script>
 </body>
