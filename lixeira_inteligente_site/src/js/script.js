@@ -1,69 +1,130 @@
-// Endereço do Firebase Realtime Database
-const FIREBASE_URL =
-  "https://guilhermebanco-default-rtdb.firebaseio.com/leituras.json";
+// EcoTrash: consulta manual do último registro do Firebase.
+// Após uma consulta, bloqueia o botão por 20 segundos para evitar excesso de requisições.
 
-// Busca registros e exibe somente a medição mais recente
-async function atualizarPainel() {
-  const textoConexao = document.getElementById("texto-conexao");
-  const pontoConexao = document.getElementById("ponto-conexao");
+const FIREBASE_URL = "https://guilhermebanco-default-rtdb.firebaseio.com/leituras.json";
+const INTERVALO_CONSULTA = 20;
+
+const queryButton = document.getElementById("queryButton");
+const countdownText = document.getElementById("countdownText");
+const connectionBadge = document.getElementById("connectionBadge");
+
+let consultaBloqueada = false;
+let contadorInterval = null;
+
+function definirBadge(texto, classe) {
+  connectionBadge.textContent = texto;
+  connectionBadge.className = `badge ${classe}`;
+}
+
+function formatarDataHora(valor) {
+  if (!valor) return "--";
+  // Compatível com formato "YYYY-MM-DD HH:mm:ss" enviado pela ESP32.
+  const data = new Date(valor.replace(" ", "T"));
+  if (Number.isNaN(data.getTime())) return valor;
+  return data.toLocaleString("pt-BR");
+}
+
+function atualizarInterface(dado) {
+  const ocupacao = Number(dado.ocupacao);
+  const distancia = Number(dado.distancia);
+  const status = String(dado.status || "DESCONHECIDO").toUpperCase();
+
+  document.getElementById("occupancyValue").textContent =
+    Number.isFinite(ocupacao) ? ocupacao.toFixed(1) : "--";
+  document.getElementById("distanceValue").textContent =
+    Number.isFinite(distancia) ? `${distancia.toFixed(2)} cm` : "--";
+  document.getElementById("readingTime").textContent =
+    formatarDataHora(dado.data_hora);
+  document.getElementById("deviceValue").textContent =
+    dado.dispositivo || "ESP32_LIXEIRA";
+  document.getElementById("statusValue").textContent = status;
+
+  const indicator = document.getElementById("statusIndicator");
+  const fill = document.getElementById("progressFill");
+  indicator.className = "status-indicator";
+  fill.style.width = `${Math.max(0, Math.min(100, ocupacao || 0))}%`;
+
+  let classe = "green";
+  let cor = "var(--green)";
+  let descricao = "Nível de ocupação baixo.";
+
+  if (status.includes("AMARELO")) {
+    classe = "yellow";
+    cor = "var(--yellow)";
+    descricao = "A lixeira está parcialmente ocupada.";
+  } else if (status.includes("VERMELHO")) {
+    classe = "red";
+    cor = "var(--red)";
+    descricao = "A lixeira está com nível de ocupação elevado.";
+  } else if (!status.includes("VERDE")) {
+    descricao = "Status recebido do dispositivo.";
+  }
+
+  indicator.classList.add(classe);
+  fill.style.background = cor;
+  document.getElementById("statusDescription").textContent = descricao;
+}
+
+function iniciarBloqueio() {
+  consultaBloqueada = true;
+  queryButton.disabled = true;
+  let restante = INTERVALO_CONSULTA;
+  countdownText.textContent = `Próxima consulta disponível em ${restante} segundos.`;
+
+  if (contadorInterval) clearInterval(contadorInterval);
+  contadorInterval = setInterval(() => {
+    restante -= 1;
+    if (restante <= 0) {
+      clearInterval(contadorInterval);
+      contadorInterval = null;
+      consultaBloqueada = false;
+      queryButton.disabled = false;
+      countdownText.textContent = "Consulta liberada. Clique para atualizar os dados.";
+      return;
+    }
+    countdownText.textContent = `Próxima consulta disponível em ${restante} segundos.`;
+  }, 1000);
+}
+
+async function consultarFirebase() {
+  if (consultaBloqueada) return;
+
+  queryButton.disabled = true;
+  queryButton.textContent = "Consultando...";
+  definirBadge("Consultando Firebase", "neutral");
 
   try {
-    const resposta = await fetch(FIREBASE_URL);
-    if (!resposta.ok) throw new Error("Não foi possível acessar o Firebase.");
-    const dados = await resposta.json();
-    if (!dados) throw new Error("Ainda não existem medições no banco.");
+    // GET único: busca o histórico e seleciona o registro mais recente.
+    const resposta = await fetch(FIREBASE_URL, { cache: "no-store" });
+    if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
 
-    // Transforma os registros recebidos em lista e ordena pela data
-    const leituras = Object.values(dados);
-    leituras.sort((a, b) => converterData(b.data_hora) - converterData(a.data_hora));
-    const ultimaLeitura = leituras[0];
-
-    // Confere se a leitura contém os campos necessários
-    if (!ultimaLeitura || ultimaLeitura.ocupacao === undefined || !ultimaLeitura.data_hora) {
-      throw new Error("Os dados da última medição estão incompletos.");
+    const registros = await resposta.json();
+    if (!registros || typeof registros !== "object") {
+      throw new Error("Banco sem registros.");
     }
 
-    // Atualiza o percentual exibido
-    const percentual = Number(ultimaLeitura.ocupacao);
-    document.getElementById("ocupacao").textContent = percentual.toFixed(1).replace(".", ",") + "%";
+    const lista = Object.values(registros);
+    if (!lista.length) throw new Error("Nenhuma leitura encontrada.");
 
-    // Atualiza texto e cor do status
-    const statusElemento = document.getElementById("status");
-    const status = String(ultimaLeitura.status || "INDEFINIDO").toUpperCase();
-    statusElemento.textContent = status;
-    statusElemento.className = "status";
-    if (status === "AMARELO") statusElemento.classList.add("amarelo");
-    else if (status === "VERMELHO") statusElemento.classList.add("vermelho");
+    // Usa timestamp, se existir; senão, tenta data_hora.
+    lista.sort((a, b) => {
+      const ta = Number(a.timestamp) || Date.parse((a.data_hora || "").replace(" ", "T")) || 0;
+      const tb = Number(b.timestamp) || Date.parse((b.data_hora || "").replace(" ", "T")) || 0;
+      return ta - tb;
+    });
 
-    // Mostra data e hora da última leitura
-    document.getElementById("ultima-medicao").textContent = formatarData(ultimaLeitura.data_hora);
-
-    // Indica conexão bem-sucedida
-    pontoConexao.className = "ponto online";
-    textoConexao.textContent = "Conectado ao Firebase";
+    const ultimo = lista[lista.length - 1];
+    atualizarInterface(ultimo);
+    definirBadge("Dados atualizados", "success");
+    countdownText.textContent = "Consulta concluída. Intervalo de 20 segundos iniciado.";
   } catch (erro) {
-    // Indica erro de conexão ou ausência de dados
-    pontoConexao.className = "ponto erro";
-    textoConexao.textContent = erro.message;
+    console.error("EcoTrash consulta:", erro);
+    definirBadge("Falha na consulta", "error");
+    countdownText.textContent = "Não foi possível consultar o Firebase. Tente novamente após o intervalo.";
+  } finally {
+    queryButton.textContent = "↻  Consultar banco";
+    iniciarBloqueio();
   }
 }
 
-// Converte a data armazenada para um formato que o navegador entende
-function converterData(valor) {
-  if (!valor) return 0;
-  return new Date(String(valor).replace(" ", "T")).getTime() || 0;
-}
-
-// Formata data e hora para o padrão brasileiro
-function formatarData(valor) {
-  const data = new Date(String(valor).replace(" ", "T"));
-  if (Number.isNaN(data.getTime())) return valor;
-  return data.toLocaleString("pt-BR", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit", second: "2-digit"
-  });
-}
-
-// Faz uma consulta ao abrir e atualiza automaticamente a cada 3 segundos
-atualizarPainel();
-setInterval(atualizarPainel, 3000);
+queryButton.addEventListener("click", consultarFirebase);
