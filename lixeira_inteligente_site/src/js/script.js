@@ -2,7 +2,7 @@
 // ECOTRASH - CONSULTA FIREBASE
 
 const FIREBASE_URL = "https://guilhermebanco-default-rtdb.firebaseio.com/leituras.json";
-const INTERVALO = 20;
+const INTERVALO = 10;
 
 const queryButton = document.getElementById("queryButton");
 const countdownText = document.getElementById("countdownText");
