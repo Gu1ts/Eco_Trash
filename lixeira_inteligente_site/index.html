@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Status da Lixeira Inteligente</title>
+  <link rel="stylesheet" href="src/css/style.css">
+</head>
+<body>
+  <main class="painel">
+    <h1>Lixeira Inteligente</h1>
+    <p class="descricao">Acompanhamento do nível de ocupação</p>
+    <div class="percentual" id="ocupacao">--%</div>
+    <div class="legenda">Ocupação atual</div>
+    <div class="status" id="status">AGUARDANDO</div>
+    <section class="medicao">
+      <div class="medicao-titulo">Última vez medida</div>
+      <div class="medicao-horario" id="ultima-medicao">Aguardando dados...</div>
+    </section>
+    <div class="conexao">
+      <span class="ponto" id="ponto-conexao"></span>
+      <span id="texto-conexao">Conectando ao banco de dados...</span>
+    </div>
+  </main>
+  <script src="src/js/script.js"></script>
+</body>
+</html>
